@@ -15,20 +15,7 @@ if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
 }
 Write-Host "✅ Git: $(git --version)"
 
-# 2. Kontrola Node.js (nutné pro filesystem MCP)
-if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
-    Write-Host "⚙️  Node.js není nainstalován – instaluji automaticky..." -ForegroundColor Yellow
-    winget install OpenJS.NodeJS.LTS --silent --accept-package-agreements --accept-source-agreements
-    # Refresh PATH
-    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-    if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
-        Write-Host "❌ Instalace Node.js selhala. Stáhni ručně z: https://nodejs.org" -ForegroundColor Red
-        Pause; exit 1
-    }
-}
-Write-Host "✅ Node.js: $(node --version)"
-
-# 3. Klonování nebo aktualizace repozitáře do C:\radce
+# 2. Klonování nebo aktualizace repozitáře do C:\radce
 Write-Host ""
 if (Test-Path "C:\radce\.git") {
     Write-Host "📂 C:\radce existuje – aktualizuji soubory..."
@@ -39,7 +26,7 @@ if (Test-Path "C:\radce\.git") {
 }
 Write-Host "✅ Soubory v C:\radce jsou aktuální"
 
-# 4. Startup skript – automatický git pull při přihlášení
+# 3. Startup skript – automatický git pull při přihlášení
 $startupFolder = [System.Environment]::GetFolderPath('Startup')
 @"
 @echo off
@@ -47,33 +34,13 @@ git -C C:\radce pull >nul 2>&1
 "@ | Out-File "$startupFolder\radce_update.bat" -Encoding ascii
 Write-Host "✅ Automatická aktualizace při spuštění PC nastavena"
 
-# 5. Claude Desktop – filesystem MCP konfigurace
-$claudeConfig = "$env:APPDATA\Claude\claude_desktop_config.json"
-$mcpEntry = [ordered]@{
-    command = "npx"
-    args    = @("-y", "@modelcontextprotocol/server-filesystem", "C:\radce")
-}
-
-if (Test-Path $claudeConfig) {
-    $raw = Get-Content $claudeConfig -Raw
-    $config = $raw | ConvertFrom-Json
-    if (-not $config.mcpServers) {
-        $config | Add-Member -NotePropertyName mcpServers -NotePropertyValue ([PSCustomObject]@{})
-    }
-    $config.mcpServers | Add-Member -NotePropertyName filesystem -NotePropertyValue $mcpEntry -Force
-    $config | ConvertTo-Json -Depth 10 | Out-File $claudeConfig -Encoding utf8NoBOM
-    Write-Host "✅ Claude Desktop MCP konfigurace aktualizována"
-} else {
-    New-Item -ItemType Directory -Force -Path "$env:APPDATA\Claude" | Out-Null
-    [PSCustomObject]@{ mcpServers = [PSCustomObject]@{ filesystem = $mcpEntry } } |
-        ConvertTo-Json -Depth 10 | Out-File $claudeConfig -Encoding utf8NoBOM
-    Write-Host "✅ Claude Desktop MCP konfigurace vytvořena"
-}
-
 Write-Host ""
 Write-Host "=== Instalace dokončena ===" -ForegroundColor Green
 Write-Host ""
-Write-Host "Dalsi krok: Restartuj Claude Desktop." -ForegroundColor Yellow
-Write-Host "Pote otevri projekt Posudky a over ze Claude vidi soubory v C:\radce"
+Write-Host "Posledni krok – provest rucne v Claude Desktop:" -ForegroundColor Yellow
+Write-Host "  Settings → MCP Connectors → Add → Filesystem"
+Write-Host "  Cesta: C:\radce"
+Write-Host ""
+Write-Host "Pote restartuj Claude Desktop a otevri projekt Posudky."
 Write-Host ""
 Pause
