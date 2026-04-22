@@ -17,10 +17,14 @@ Write-Host "✅ Git: $(git --version)"
 
 # 2. Kontrola Node.js (nutné pro filesystem MCP)
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
-    Write-Host "❌ Node.js není nainstalován." -ForegroundColor Red
-    Write-Host "   Stáhni z: https://nodejs.org (LTS verze)"
-    Write-Host "   Po instalaci Node.js spusť tento skript znovu."
-    Pause; exit 1
+    Write-Host "⚙️  Node.js není nainstalován – instaluji automaticky..." -ForegroundColor Yellow
+    winget install OpenJS.NodeJS.LTS --silent --accept-package-agreements --accept-source-agreements
+    # Refresh PATH
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+    if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
+        Write-Host "❌ Instalace Node.js selhala. Stáhni ručně z: https://nodejs.org" -ForegroundColor Red
+        Pause; exit 1
+    }
 }
 Write-Host "✅ Node.js: $(node --version)"
 
